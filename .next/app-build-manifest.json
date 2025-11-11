@@ -10,26 +10,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
-    ],
-    "/booknow/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/booknow/page.js"
-    ],
-    "/api/bookings/unavailable-dates/[hallOwnerId]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/bookings/unavailable-dates/[hallOwnerId]/route.js"
-    ],
-    "/api/resources/public/[hallOwnerId]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/resources/public/[hallOwnerId]/route.js"
-    ],
-    "/api/pricing/public/[hallOwnerId]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/pricing/public/[hallOwnerId]/route.js"
     ]
   }
 }

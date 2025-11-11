@@ -1,9 +1,11 @@
 "use client";
 import React from "react";
+import { useSearchParams } from "next/navigation";
 import BookingEngineWidget from "@/components/booking-engine/BookingEngineWidget";
 
 export default function BookNowPage() {
-	const tenantId = "bLRLXrfr5pRBVcUntxUFlvXewaw1";
+	const search = useSearchParams();
+	const tenantId = search?.get("tenant") || process.env.NEXT_PUBLIC_TENANT_ID || "REPLACE_WITH_DEFAULT_HALL_OWNER_ID";
 	return (
 		<div className="bg-white font-sans min-h-screen flex flex-col">
 			<main className="flex-1 pt-24 px-4 sm:px-8 md:px-12 lg:px-20">

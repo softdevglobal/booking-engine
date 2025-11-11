@@ -45,6 +45,18 @@ export async function POST(request: NextRequest) {
 		const endTimeObj = new Date(`2000-01-01T${endTime}:00`);
 		if (startTimeObj >= endTimeObj) return NextResponse.json({ message: 'Start time must be before end time' }, { status: 400 });
 
+		// If authenticated customer provided, enforce tenant match
+		if (customerId) {
+			const custRef = doc(db, 'customers', String(customerId));
+			const custSnap = await getDoc(custRef);
+			if (!custSnap.exists() || custSnap.data()?.tenantId !== hallOwnerId) {
+				return NextResponse.json(
+					{ message: 'Account does not belong to this hall. Please login/register for this venue.' },
+					{ status: 403 }
+				);
+			}
+		}
+
 		const hallOwnerDocRef = doc(db, 'users', hallOwnerId);
 		const hallOwnerDoc = await getDoc(hallOwnerDocRef);
 		if (!hallOwnerDoc.exists() || hallOwnerDoc.data().role !== 'hall_owner') {

@@ -1,7 +1,3 @@
 {
-  "/api/bookings/unavailable-dates/[hallOwnerId]/route": "app/api/bookings/unavailable-dates/[hallOwnerId]/route.js",
-  "/api/resources/public/[hallOwnerId]/route": "app/api/resources/public/[hallOwnerId]/route.js",
-  "/api/pricing/public/[hallOwnerId]/route": "app/api/pricing/public/[hallOwnerId]/route.js",
-  "/booknow/page": "app/booknow/page.js",
   "/page": "app/page.js"
 }

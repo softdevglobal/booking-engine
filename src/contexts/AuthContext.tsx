@@ -30,7 +30,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children, tenantId }: { children: React.ReactNode; tenantId: string }) {
 	const [user, setUser] = useState<User | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 
@@ -41,6 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					const ref = doc(db, "customers", fbUser.uid);
 					const snap = await getDoc(ref);
 					const data = snap.data() as any;
+					// Enforce tenant scoping: customer must belong to current tenant
+					if (!data?.tenantId || data.tenantId !== tenantId) {
+						await signOut(auth);
+						setUser(null);
+						localStorage.removeItem("booking_engine_user");
+						setIsLoading(false);
+						return;
+					}
 					const u: User = {
 						id: fbUser.uid,
 						name: data?.name || fbUser.displayName || (fbUser.email?.split("@")[0] ?? "User"),
@@ -65,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setIsLoading(false);
 		});
 		return () => unsub();
-	}, []);
+	}, [tenantId]);
 
 	const login = async (email: string, password: string): Promise<boolean> => {
 		setIsLoading(true);
@@ -85,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			const { user: fbUser } = await createUserWithEmailAndPassword(auth, email, password);
 			const payload = {
 				customerId: fbUser.uid,
+				tenantId,
 				name,
 				email,
 				phone: phone || "",
