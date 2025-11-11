@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, FieldValue } from '@/lib/firebaseAdmin';
+import { adminDb, FieldValue, isAdminConfigured } from '@/lib/firebaseAdmin';
 import { emailService } from '@/lib/emailService';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, query, where, getDocs, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
 		let calculatedPrice = 0;
 		let priceDetails: any = null;
 		try {
+			if (!isAdminConfigured) throw new Error('ADMIN_NOT_CONFIGURED');
+
 			const pricingSnapshot = await adminDb
 				.collection('pricing')
 				.where('hallOwnerId', '==', hallOwnerId)
@@ -236,7 +238,7 @@ export async function POST(request: NextRequest) {
 			status: 'pending',
 		});
 	} catch (error: unknown) {
-		// Fallback to client SDK path if Admin fails (e.g., missing credentials in local dev)
+		// Fallback to client SDK path if Admin fails or is not configured
 		try {
 			const body = await request.json().catch(() => null);
 			if (!body) throw error instanceof Error ? error : new Error('Internal server error');

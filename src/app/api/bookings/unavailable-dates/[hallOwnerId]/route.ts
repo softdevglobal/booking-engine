@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { adminDb, isAdminConfigured } from '@/lib/firebaseAdmin';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
@@ -16,7 +16,7 @@ export async function GET(
 		const startDate = searchParams.get('startDate');
 		const endDate = searchParams.get('endDate');
 
-		try {
+		if (isAdminConfigured) {
 			const userDoc = await adminDb.collection('users').doc(hallOwnerId).get();
 			if (!userDoc.exists || (userDoc.data() as any)?.role !== 'hall_owner') {
 				return NextResponse.json({ message: 'Hall owner not found' }, { status: 404 });
@@ -59,7 +59,7 @@ export async function GET(
 				totalBookings: filteredBookings.length,
 				message: 'Successfully fetched unavailable dates'
 			});
-		} catch (adminErr) {
+		} else {
 			// Fallback to client SDK
 			const userDocRef = doc(db, 'users', hallOwnerId);
 			const userDoc = await getDoc(userDocRef);
