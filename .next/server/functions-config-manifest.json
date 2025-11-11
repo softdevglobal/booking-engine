@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "functions": {
-    "/api/pricing/public/[hallOwnerId]": {},
-    "/api/resources/public/[hallOwnerId]": {},
-    "/api/bookings/unavailable-dates/[hallOwnerId]": {},
-    "/api/bookings": {}
-  }
-}

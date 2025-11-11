@@ -1,9 +1,0 @@
-{
-  "/_not-found/page": "/_not-found",
-  "/api/bookings/unavailable-dates/[hallOwnerId]/route": "/api/bookings/unavailable-dates/[hallOwnerId]",
-  "/api/resources/public/[hallOwnerId]/route": "/api/resources/public/[hallOwnerId]",
-  "/api/pricing/public/[hallOwnerId]/route": "/api/pricing/public/[hallOwnerId]",
-  "/api/bookings/route": "/api/bookings",
-  "/booknow/page": "/booknow",
-  "/page": "/"
-}
