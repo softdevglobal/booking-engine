@@ -5,7 +5,7 @@ import BookingEngineWidget from "@/components/booking-engine/BookingEngineWidget
 
 export default function BookNowPage() {
 	const search = useSearchParams();
-	const tenantId = search?.get("tenant") || process.env.NEXT_PUBLIC_TENANT_ID || "REPLACE_WITH_DEFAULT_HALL_OWNER_ID";
+	const tenantId = search?.get("tenant") || process.env.NEXT_PUBLIC_TENANT_ID || "bLRLXrfr5pRBVcUntxUFlvXewaw1";
 	return (
 		<div className="bg-white font-sans min-h-screen flex flex-col">
 			<main className="flex-1 pt-24 px-4 sm:px-8 md:px-12 lg:px-20">

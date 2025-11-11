@@ -18,13 +18,6 @@
       "static/chunks/820-5438bd872c4d7890.js",
       "static/chunks/app/layout-a44d80d6905df035.js"
     ],
-    "/api/resources/public/[hallOwnerId]/route": [
-      "static/chunks/webpack-a2a7106df7a920d1.js",
-      "static/chunks/4bd1b696-c023c6e3521b1417.js",
-      "static/chunks/255-e3bf15caf1f1e0f9.js",
-      "static/chunks/main-app-ad0b1b2de18ce03c.js",
-      "static/chunks/app/api/resources/public/[hallOwnerId]/route-7a80c6b3a15f026c.js"
-    ],
     "/api/bookings/unavailable-dates/[hallOwnerId]/route": [
       "static/chunks/webpack-a2a7106df7a920d1.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
@@ -32,12 +25,12 @@
       "static/chunks/main-app-ad0b1b2de18ce03c.js",
       "static/chunks/app/api/bookings/unavailable-dates/[hallOwnerId]/route-7a80c6b3a15f026c.js"
     ],
-    "/api/bookings/route": [
+    "/api/resources/public/[hallOwnerId]/route": [
       "static/chunks/webpack-a2a7106df7a920d1.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
       "static/chunks/255-e3bf15caf1f1e0f9.js",
       "static/chunks/main-app-ad0b1b2de18ce03c.js",
-      "static/chunks/app/api/bookings/route-7a80c6b3a15f026c.js"
+      "static/chunks/app/api/resources/public/[hallOwnerId]/route-7a80c6b3a15f026c.js"
     ],
     "/api/pricing/public/[hallOwnerId]/route": [
       "static/chunks/webpack-a2a7106df7a920d1.js",
@@ -45,6 +38,13 @@
       "static/chunks/255-e3bf15caf1f1e0f9.js",
       "static/chunks/main-app-ad0b1b2de18ce03c.js",
       "static/chunks/app/api/pricing/public/[hallOwnerId]/route-7a80c6b3a15f026c.js"
+    ],
+    "/api/bookings/route": [
+      "static/chunks/webpack-a2a7106df7a920d1.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/255-e3bf15caf1f1e0f9.js",
+      "static/chunks/main-app-ad0b1b2de18ce03c.js",
+      "static/chunks/app/api/bookings/route-7a80c6b3a15f026c.js"
     ],
     "/booknow/page": [
       "static/chunks/webpack-a2a7106df7a920d1.js",
@@ -54,7 +54,7 @@
       "static/chunks/bc9e92e6-838eed399b6676aa.js",
       "static/chunks/d441faa4-7fab5fa823c2d204.js",
       "static/chunks/820-5438bd872c4d7890.js",
-      "static/chunks/app/booknow/page-efd43912d6d65221.js"
+      "static/chunks/app/booknow/page-dbafe4bc5127365a.js"
     ],
     "/page": [
       "static/chunks/webpack-a2a7106df7a920d1.js",
@@ -64,7 +64,7 @@
       "static/chunks/bc9e92e6-838eed399b6676aa.js",
       "static/chunks/d441faa4-7fab5fa823c2d204.js",
       "static/chunks/820-5438bd872c4d7890.js",
-      "static/chunks/app/page-2810a660e4b11c90.js"
+      "static/chunks/app/page-60c660bfd2e91c9a.js"
     ]
   }
 }

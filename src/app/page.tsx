@@ -11,7 +11,7 @@ export default function Page() {
 
 	const handleBookNow = () => {
 		if (isAuthenticated) {
-			router.push("/booknow");
+			router.push("/booknow?tenant=bLRLXrfr5pRBVcUntxUFlvXewaw1");
 		} else {
 			setShowLogin(true);
 		}
@@ -47,7 +47,7 @@ export default function Page() {
 						onClose={() => setShowLogin(false)}
 						onSuccess={() => {
 							setShowLogin(false);
-							router.push("/booknow");
+							router.push("/booknow?tenant=bLRLXrfr5pRBVcUntxUFlvXewaw1");
 						}}
 					/>
 				)}
