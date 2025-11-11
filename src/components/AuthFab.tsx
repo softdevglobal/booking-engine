@@ -1,12 +1,10 @@
 "use client";
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import LoginModal from "@/components/LoginModal";
 
 export default function AuthFab() {
 	const { isAuthenticated, user, logout } = useAuth();
 	const [open, setOpen] = useState(false);
-	const [showLogin, setShowLogin] = useState(false);
 
 	return (
 		<>
@@ -39,16 +37,8 @@ export default function AuthFab() {
 							</div>
 						)}
 					</div>
-				) : (
-					<button
-						onClick={() => setShowLogin(true)}
-						className="px-4 h-12 rounded-full shadow-lg border border-gray-200 bg-[#e63946] text-white font-semibold hover:bg-[#d62839] transition-colors"
-					>
-						Login / Register
-					</button>
-				)}
+				) : null}
 			</div>
-			{showLogin && <LoginModal onClose={() => setShowLogin(false)} onSuccess={() => setShowLogin(false)} />}
 		</>
 	);
 }

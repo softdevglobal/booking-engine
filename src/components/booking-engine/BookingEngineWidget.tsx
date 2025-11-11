@@ -203,16 +203,6 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 
 	return (
 		<div className={className}>
-			{requireAuth && !isAuthenticated && (
-				<div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-					<div className="flex items-center justify-between">
-						<p className="text-amber-800 text-sm">Please login to make a booking.</p>
-						<button onClick={() => setShowLoginModal(true)} className="px-3 py-2 rounded bg-[#e63946] text-white text-sm font-semibold hover:bg-[#d62839]">
-							Login / Register
-						</button>
-					</div>
-				</div>
-			)}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
 				<div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 order-2 lg:order-1">
 					<h2 className="text-2xl font-bold text-[#181411] mb-6">Booking Request</h2>
