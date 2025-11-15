@@ -10,6 +10,7 @@ export type BookingEngineWidgetProps = {
 	className?: string;
 	requireAuth?: boolean;
 	allowMultiResource?: boolean;
+	source?: string;
 };
 
 type Address = {
@@ -36,6 +37,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 		className,
 		requireAuth = false,
 		allowMultiResource = true,
+		source = "website",
 	} = props;
 
 	const [resources, setResources] = useState<ResourceItem[]>([]);
@@ -45,7 +47,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 	const [error, setError] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [selectedDates, setSelectedDates] = useState<Record<string, {day: number, month: number, year: number} | null>>({});
-	const { isAuthenticated } = useAuth();
+	const { isAuthenticated, user } = useAuth();
 	const [showLoginModal, setShowLoginModal] = useState(false);
 
 	const [formData, setFormData] = useState({
@@ -60,6 +62,13 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 		resources: [] as string[],
 		message: ""
 	});
+
+	useEffect(() => {
+		// If login is required for booking, prompt immediately when not authenticated
+		if (requireAuth && !isAuthenticated) {
+			setShowLoginModal(true);
+		}
+	}, [requireAuth, isAuthenticated]);
 
 	useEffect(() => {
 		let active = true;
@@ -163,6 +172,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 			const selectedHall = formData.resources[0];
 			const estimatedPrice = calculateEstimatedCost(selectedHall, formData.startTime, formData.endTime, formData.date);
 			const payload = {
+				customerId: isAuthenticated ? user?.id : undefined,
 				customerName: formData.name,
 				customerEmail: formData.email,
 				customerPhone: formData.phone,
@@ -175,8 +185,10 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 				hallOwnerId: tenantId,
 				estimatedPrice: estimatedPrice ?? undefined,
 				guestCount: formData.guests,
-				bookingSource: "website",
+				bookingSource: source || "website",
+				customerAvatar: undefined,
 			};
+			if (isAuthenticated && user?.avatar) (payload as any).customerAvatar = user.avatar;
 			const result = await createBooking(payload as any);
 			const priceMessage = estimatedPrice ? ` Estimated cost: $${estimatedPrice.toFixed(2)}.` : "";
 			const bookingCode = (result as any).bookingCode ? `\nYour booking code: ${(result as any).bookingCode}` : "";
