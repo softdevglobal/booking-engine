@@ -41,14 +41,7 @@ export function AuthProvider({ children, tenantId }: { children: React.ReactNode
 					const ref = doc(db, "customers", fbUser.uid);
 					const snap = await getDoc(ref);
 					const data = snap.data() as any;
-					// Enforce tenant scoping: customer must belong to current tenant
-					if (!data?.tenantId || data.tenantId !== tenantId) {
-						await signOut(auth);
-						setUser(null);
-						localStorage.removeItem("booking_engine_user");
-						setIsLoading(false);
-						return;
-					}
+					// Note: Do not force sign-out on tenant mismatch; server validates on booking submit.
 					const u: User = {
 						id: fbUser.uid,
 						name: data?.name || fbUser.displayName || (fbUser.email?.split("@")[0] ?? "User"),

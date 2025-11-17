@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { initializeFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyAXkJB5pymjqwcTDc5DtH_CbDtXPIslsao",
@@ -14,6 +14,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 export const auth = getAuth(app);
+// Ensure auth persists across tabs/sessions
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 export default app;
 
 

@@ -9,7 +9,7 @@ function TenantAuth({ children }: { children: React.ReactNode }) {
 	const search = useSearchParams();
 	const searchTenant = search?.get("tenant");
 	const isEmbed = (search?.get("embed") === "1") || (search?.get("embed") === "true");
-	const tenantId = searchTenant || process.env.NEXT_PUBLIC_TENANT_ID || "REPLACE_WITH_DEFAULT_HALL_OWNER_ID";
+	const tenantId = searchTenant || process.env.NEXT_PUBLIC_TENANT_ID || "bLRLXrfr5pRBVcUntxUFlvXewaw1";
 	return (
 		<AuthProvider tenantId={tenantId}>
 			{children}

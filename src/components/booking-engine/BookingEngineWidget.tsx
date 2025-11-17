@@ -63,6 +63,18 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 		message: ""
 	});
 
+	// Prefill user details after login (and on initial load if already logged in)
+	useEffect(() => {
+		if (isAuthenticated && user) {
+			setFormData(prev => ({
+				...prev,
+				name: prev.name || user.name || "",
+				email: prev.email || user.email || "",
+				phone: prev.phone || user.phone || ""
+			}));
+		}
+	}, [isAuthenticated, user]);
+
 	useEffect(() => {
 		// If login is required for booking, prompt immediately when not authenticated
 		if (requireAuth && !isAuthenticated) {
