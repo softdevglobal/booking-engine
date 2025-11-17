@@ -2,8 +2,10 @@
 import React, { Suspense } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { useSearchParams } from "next/navigation";
 import AuthFab from "@/components/AuthFab";
+import NotificationBell from "@/components/NotificationBell";
 
 function TenantAuth({ children }: { children: React.ReactNode }) {
 	const search = useSearchParams();
@@ -12,8 +14,11 @@ function TenantAuth({ children }: { children: React.ReactNode }) {
 	const tenantId = searchTenant || process.env.NEXT_PUBLIC_TENANT_ID || "bLRLXrfr5pRBVcUntxUFlvXewaw1";
 	return (
 		<AuthProvider tenantId={tenantId}>
-			{children}
-			{!isEmbed && <AuthFab />}
+			<NotificationProvider>
+				{children}
+				{!isEmbed && <AuthFab />}
+				{!isEmbed && <NotificationBell />}
+			</NotificationProvider>
 		</AuthProvider>
 	);
 }
