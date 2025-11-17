@@ -13,6 +13,7 @@ type ResourceItem = {
 	code: string;
 	description: string;
 	hallOwnerId: string;
+	imageUrl?: string;
 	createdAt: string | null;
 	updatedAt: string | null;
 };
@@ -45,6 +46,7 @@ export async function GET(
 					code: data.code || '',
 					description: data.description || '',
 					hallOwnerId: data.hallOwnerId,
+					imageUrl: data.imageUrl || undefined,
 					createdAt: data.createdAt?.toDate?.()?.toISOString?.() || null,
 					updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || null,
 				};
@@ -82,6 +84,7 @@ export async function GET(
 					code: data.code || '',
 					description: data.description || '',
 					hallOwnerId: data.hallOwnerId,
+					imageUrl: data.imageUrl || undefined,
 					createdAt: data.createdAt?.toDate?.()?.toISOString?.() || null,
 					updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() || null,
 				};

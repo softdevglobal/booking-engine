@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Calendar from "@/app/components/Calendar";
 import { getPublicResources, getPublicPricing, createBooking, getPublicEventTypes, type ResourcesResponse, type ResourceItem, type PricingItem } from "./api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +63,15 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 		resources: [] as string[],
 		message: ""
 	});
+
+	// Fancy dropdown helpers (resources + event types)
+	const [resourceOpen, setResourceOpen] = useState(false);
+	const [resourceQuery, setResourceQuery] = useState("");
+	const resourceRef = useRef<HTMLDivElement>(null);
+
+	const [eventOpen, setEventOpen] = useState(false);
+	const [eventQuery, setEventQuery] = useState("");
+	const eventRef = useRef<HTMLDivElement>(null);
 
 	// Prefill user details after login (and on initial load if already logged in)
 	useEffect(() => {
@@ -151,6 +160,47 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 			};
 		});
 	};
+
+	// Filtered lists for dropdowns
+	const filteredResources = useMemo(() => {
+		const q = resourceQuery.trim().toLowerCase();
+		if (!q) return resources;
+		return resources.filter(r =>
+			r.name.toLowerCase().includes(q) ||
+			(r.type || "").toLowerCase().includes(q) ||
+			(r.code || "").toLowerCase().includes(q)
+		);
+	}, [resources, resourceQuery]);
+
+	const filteredEventTypes = useMemo(() => {
+		const q = eventQuery.trim().toLowerCase();
+		if (!q) return eventTypes;
+		return (eventTypes || []).filter(et => et.toLowerCase().includes(q));
+	}, [eventTypes, eventQuery]);
+
+	// Close dropdowns on outside click / Escape
+	useEffect(() => {
+		function onClick(e: MouseEvent) {
+			if (resourceOpen && resourceRef.current && !resourceRef.current.contains(e.target as Node)) {
+				setResourceOpen(false);
+			}
+			if (eventOpen && eventRef.current && !eventRef.current.contains(e.target as Node)) {
+				setEventOpen(false);
+			}
+		}
+		function onKey(e: KeyboardEvent) {
+			if (e.key === "Escape") {
+				setResourceOpen(false);
+				setEventOpen(false);
+			}
+		}
+		document.addEventListener("click", onClick);
+		document.addEventListener("keydown", onKey);
+		return () => {
+			document.removeEventListener("click", onClick);
+			document.removeEventListener("keydown", onKey);
+		};
+	}, [resourceOpen, eventOpen]);
 
 	const totalEstimated = useMemo(() => {
 		if (!formData.date || !formData.startTime || !formData.endTime) return 0;
@@ -250,17 +300,59 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 							<label htmlFor="phone" className="block text-sm font-medium text-[#181411] mb-2">Phone Number *</label>
 							<input type="tel" id="phone" name="phone" required value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-0 focus:border-gray-300 text-[#181411] bg-white" placeholder="Your phone number" />
 						</div>
-						<div>
-							<label htmlFor="eventType" className="block text-sm font-medium text-[#181411] mb-2">Event Type *</label>
-							<select id="eventType" name="eventType" required value={formData.eventType} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-0 focus:border-gray-300 text-[#181411] bg-white">
-								<option value="">Select event type</option>
-								{(eventTypes.length ? eventTypes : []).map((et) => (
-									<option key={et} value={et}>{et}</option>
-								))}
-							</select>
+						<div ref={eventRef} className="relative">
+							<label className="block text-sm font-medium text-[#181411] mb-2">Event Type *</label>
+							<button
+								type="button"
+								onClick={() => setEventOpen(v => !v)}
+								className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors"
+								aria-haspopup="listbox"
+								aria-expanded={eventOpen}
+							>
+								<span className={`truncate ${formData.eventType ? "text-[#181411]" : "text-[#897561]"}`}>
+									{formData.eventType || "Select event type"}
+								</span>
+								<svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							</button>
+							{eventOpen && (
+								<div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+									<div className="p-2 border-b border-gray-200 bg-gray-50">
+										<input
+											type="text"
+											placeholder="Search event types..."
+											value={eventQuery}
+											onChange={(e) => setEventQuery(e.target.value)}
+											className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-gray-300 bg-white"
+										/>
+									</div>
+									<ul role="listbox" className="max-h-60 overflow-auto">
+										{filteredEventTypes.length === 0 && (
+											<li className="px-4 py-3 text-sm text-[#897561]">No matches</li>
+										)}
+										{filteredEventTypes.map(et => (
+											<li key={et}>
+												<button
+													type="button"
+													onClick={() => { setFormData(prev => ({ ...prev, eventType: et })); setEventOpen(false); }}
+													className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${formData.eventType === et ? "bg-blue-50 text-blue-800" : "text-[#181411]"}`}
+													role="option"
+													aria-selected={formData.eventType === et}
+												>
+													<span className="inline-flex items-center gap-2">
+														<span className="inline-block w-2 h-2 rounded-full bg-[#ec8013]" />
+														{et}
+													</span>
+												</button>
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
 						</div>
-						<div>
-							<label className="block text-sm font-medium text-[#181411] mb-3">Select Resources *</label>
+						<div ref={resourceRef} className="relative">
+							<label className="block text-sm font-medium text-[#181411] mb-2">Select Resource *</label>
 							{loading ? (
 								<div className="text-center py-4">
 									<p className="text-[#897561]">Loading resources...</p>
@@ -270,38 +362,108 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 									<p className="text-red-600">{error}</p>
 								</div>
 							) : (
-								<div className="space-y-3">
-									{resources.map((resource) => (
-										<div key={resource.id} className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-											<input
-												type="checkbox"
-												id={`resource-${resource.id}`}
-												checked={formData.resources.includes(resource.id)}
-												onChange={(e) => handleResourceChange(resource.id, e.target.checked)}
-												className="mt-1 h-4 w-4 border-gray-300 rounded"
-											/>
-											<div className="flex-1">
-												<label htmlFor={`resource-${resource.id}`} className="block text-sm font-medium text-[#181411] cursor-pointer">
-													{resource.name}
-												</label>
-												{resource.description && <p className="text-sm text-[#897561] mt-1">{resource.description}</p>}
-												<div className="flex items-center gap-4 mt-2 text-xs text-[#897561]">
-													<span>Capacity: {resource.capacity} people</span>
-													<span>Type: {resource.type.charAt(0).toUpperCase() + resource.type.slice(1)}</span>
-													<span>Code: {resource.code}</span>
-												</div>
-												{getResourcePricing(resource.id) && (
-													<div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-														<div className="text-sm font-medium text-green-800 mb-1">Pricing:</div>
-														<div className="text-xs text-green-700">
-															<div>Weekday: ${getResourcePricing(resource.id)?.weekdayRate}/{getResourcePricing(resource.id)?.rateType}</div>
-															<div>Weekend: ${getResourcePricing(resource.id)?.weekendRate}/{getResourcePricing(resource.id)?.rateType}</div>
-														</div>
-													</div>
-												)}
+								<div>
+									<button
+										type="button"
+										onClick={() => setResourceOpen(v => !v)}
+										className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between hover:border-gray-400 transition-colors"
+										aria-haspopup="listbox"
+										aria-expanded={resourceOpen}
+									>
+										<span className={`truncate ${formData.resources[0] ? "text-[#181411]" : "text-[#897561]"}`}>
+											{(() => {
+												const sel = resources.find(r => r.id === formData.resources[0]);
+												return sel ? `${sel.name} ${sel.capacity ? `- ${sel.capacity} ppl` : ""}` : "Select a resource";
+											})()}
+										</span>
+										<svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+										</svg>
+									</button>
+									{resourceOpen && (
+										<div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+											<div className="p-2 border-b border-gray-200 bg-gray-50">
+												<input
+													type="text"
+													placeholder="Search resources..."
+													value={resourceQuery}
+													onChange={(e) => setResourceQuery(e.target.value)}
+													className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-gray-300 bg-white"
+												/>
 											</div>
+											<ul role="listbox" className="max-h-72 overflow-auto divide-y divide-gray-100">
+												{filteredResources.length === 0 && (
+													<li className="px-4 py-3 text-sm text-[#897561]">No matches</li>
+												)}
+												{filteredResources.map(r => (
+													<li key={r.id} className="hover:bg-gray-50 transition-colors">
+														<button
+															type="button"
+															className="w-full text-left px-4 py-3"
+															onClick={() => { setFormData(prev => ({ ...prev, resources: [r.id] })); setResourceOpen(false); }}
+															role="option"
+															aria-selected={formData.resources[0] === r.id}
+														>
+															<div className="flex items-center gap-3">
+																<div className="w-12 h-12 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
+																	{r.imageUrl ? (
+																		<img src={r.imageUrl} alt="" className="w-full h-full object-cover" />
+																	) : (
+																		<div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No Img</div>
+																	)}
+																</div>
+																<div className="min-w-0">
+																	<div className="flex items-center gap-2">
+																		<span className="text-sm font-medium text-[#181411] truncate">{r.name}</span>
+																		<span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 capitalize">{r.type}</span>
+																	</div>
+																	<div className="text-xs text-[#897561] flex gap-3 mt-0.5">
+																		<span>{r.capacity} ppl</span>
+																		{r.code && <span className="font-mono">#{r.code}</span>}
+																	</div>
+																</div>
+															</div>
+														</button>
+													</li>
+												))}
+											</ul>
 										</div>
-									))}
+									)}
+
+									{/* Selected resource preview */}
+									{formData.resources[0] && (
+										(() => {
+											const selected = resources.find(r => r.id === formData.resources[0]);
+											if (!selected) return null;
+											return (
+												<div className="mt-3 border border-gray-200 rounded-lg p-3">
+													{selected.imageUrl ? (
+														<img
+															src={selected.imageUrl}
+															alt={`${selected.name} image`}
+															className="w-full h-48 object-cover rounded-md mb-3"
+														/>
+													) : (
+														<p className="text-sm text-[#897561] mb-2">No image available for this resource.</p>
+													)}
+													<div className="text-xs text-[#897561] flex flex-wrap gap-4">
+														<span>Capacity: {selected.capacity} people</span>
+														<span>Type: {selected.type.charAt(0).toUpperCase() + selected.type.slice(1)}</span>
+														<span>Code: {selected.code}</span>
+													</div>
+													{getResourcePricing(selected.id) && (
+														<div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+															<div className="text-sm font-medium text-green-800 mb-1">Pricing:</div>
+															<div className="text-xs text-green-700">
+																<div>Weekday: ${getResourcePricing(selected.id)?.weekdayRate}/{getResourcePricing(selected.id)?.rateType}</div>
+																<div>Weekend: ${getResourcePricing(selected.id)?.weekendRate}/{getResourcePricing(selected.id)?.rateType}</div>
+															</div>
+														</div>
+													)}
+												</div>
+											);
+										})()
+									)}
 								</div>
 							)}
 						</div>

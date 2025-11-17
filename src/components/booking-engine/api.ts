@@ -6,6 +6,7 @@ export type ResourceItem = {
 	code: string;
 	description?: string;
 	hallOwnerId: string;
+	imageUrl?: string;
 	createdAt?: string | null;
 	updatedAt?: string | null;
 };
