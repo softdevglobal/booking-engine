@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import Calendar from "@/app/components/Calendar";
-import { getPublicResources, getPublicPricing, createBooking, type ResourcesResponse, type ResourceItem, type PricingItem } from "./api";
+import { getPublicResources, getPublicPricing, createBooking, getPublicEventTypes, type ResourcesResponse, type ResourceItem, type PricingItem } from "./api";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/LoginModal";
 
@@ -42,6 +42,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 
 	const [resources, setResources] = useState<ResourceItem[]>([]);
 	const [pricing, setPricing] = useState<PricingItem[]>([]);
+	const [eventTypes, setEventTypes] = useState<string[]>([]);
 	const [hallOwner, setHallOwner] = useState<ResourcesResponse["hallOwner"] | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -88,14 +89,18 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 			try {
 				setLoading(true);
 				setError(null);
-				const [resourcesResp, pricingResp] = await Promise.all([
+				const [resourcesResp, pricingResp, eventTypesResp] = await Promise.all([
 					getPublicResources(tenantId),
 					getPublicPricing(tenantId).catch(() => [] as PricingItem[]),
+					getPublicEventTypes(tenantId).catch(() => [] as string[]),
 				]);
 				if (!active) return;
 				setResources(resourcesResp.resources);
 				setHallOwner(resourcesResp.hallOwner);
 				setPricing(pricingResp);
+				setEventTypes((resourcesResp.hallOwner?.eventTypes && resourcesResp.hallOwner.eventTypes.length > 0)
+					? resourcesResp.hallOwner.eventTypes
+					: eventTypesResp);
 			} catch (e) {
 				console.error(e);
 				if (active) {
@@ -249,12 +254,9 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 							<label htmlFor="eventType" className="block text-sm font-medium text-[#181411] mb-2">Event Type *</label>
 							<select id="eventType" name="eventType" required value={formData.eventType} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-0 focus:border-gray-300 text-[#181411] bg-white">
 								<option value="">Select event type</option>
-								<option value="wedding">Wedding</option>
-								<option value="birthday">Birthday Party</option>
-								<option value="corporate">Corporate Event</option>
-								<option value="community">Community Event</option>
-								<option value="meeting">Meeting</option>
-								<option value="other">Other</option>
+								{(eventTypes.length ? eventTypes : []).map((et) => (
+									<option key={et} value={et}>{et}</option>
+								))}
 							</select>
 						</div>
 						<div>

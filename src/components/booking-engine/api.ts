@@ -46,6 +46,7 @@ export type ResourcesResponse = {
 		phone: string;
 		email: string;
 		businessName: string;
+		eventTypes?: string[];
 	};
 };
 
@@ -93,6 +94,31 @@ export async function getPublicResources(tenantId: string): Promise<ResourcesRes
 export async function getPublicPricing(tenantId: string): Promise<PricingItem[]> {
 	const res = await fetch(`/api/pricing/public/${tenantId}`, { method: 'GET' });
 	return handleJson<PricingItem[]>(res);
+}
+
+export async function getPublicEventTypes(tenantId: string): Promise<string[]> {
+	// Try relative API first (works when reverse-proxied), then localhost:5000 as a dev fallback
+	const tryFetch = async (url: string): Promise<string[] | null> => {
+		try {
+			const res = await fetch(url, { method: 'GET' });
+			const data = await handleJson<{ eventTypes: string[] }>(res);
+			return Array.isArray(data.eventTypes) ? data.eventTypes : [];
+		} catch {
+			return null;
+		}
+	};
+
+	const first = await tryFetch(`/api/users/public/${tenantId}/event-types`);
+	if (first) return first;
+
+	// Dev fallback when API is running on 5000 and no proxy is configured
+	const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+	if (isLocal) {
+		const second = await tryFetch(`http://localhost:5000/api/users/public/${tenantId}/event-types`);
+		if (second) return second;
+	}
+
+	return [];
 }
 
 export async function getUnavailableDates(tenantId: string, params?: { resourceId?: string; startDate?: string; endDate?: string; }): Promise<UnavailableDatesResponse> {
