@@ -41,6 +41,15 @@ export function AuthProvider({ children, tenantId }: { children: React.ReactNode
 					const ref = doc(db, "customers", fbUser.uid);
 					const snap = await getDoc(ref);
 					const data = snap.data() as any;
+
+					// Enforce tenant scoping: if this customer belongs to a different hall, force sign-out.
+					if (!data || (data?.tenantId && String(data.tenantId) !== String(tenantId))) {
+						await signOut(auth);
+						setUser(null);
+						localStorage.removeItem("booking_engine_user");
+						setIsLoading(false);
+						return;
+					}
 					// Note: Do not force sign-out on tenant mismatch; server validates on booking submit.
 					const u: User = {
 						id: fbUser.uid,
@@ -71,7 +80,21 @@ export function AuthProvider({ children, tenantId }: { children: React.ReactNode
 	const login = async (email: string, password: string): Promise<boolean> => {
 		setIsLoading(true);
 		try {
-			await signInWithEmailAndPassword(auth, email, password);
+			const cred = await signInWithEmailAndPassword(auth, email, password);
+			// After login, verify tenant match; if mismatch, immediately sign out and fail.
+			try {
+				const ref = doc(db, "customers", cred.user.uid);
+				const snap = await getDoc(ref);
+				const data = snap.data() as any;
+				if (!data || (data?.tenantId && String(data.tenantId) !== String(tenantId))) {
+					await signOut(auth);
+					return false;
+				}
+			} catch {
+				// If we can't read profile, treat as failure for safety
+				await signOut(auth);
+				return false;
+			}
 			return true;
 		} catch {
 			return false;
