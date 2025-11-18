@@ -58,6 +58,7 @@ export type CreateBookingRequest = {
 	customerPhone: string;
 	eventType: string;
 	selectedHall: string;
+	selectedHalls?: string[];
 	bookingDate: string;
 	startTime: string;
 	endTime: string;

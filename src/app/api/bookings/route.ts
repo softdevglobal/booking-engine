@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 		customerPhone,
 		eventType,
 		selectedHall,
+		selectedHalls: selectedHallsInput,
 		bookingDate,
 		startTime,
 		endTime,
@@ -28,8 +29,16 @@ export async function POST(request: NextRequest) {
 		bookingSource = 'website',
 	} = body;
 
+	// Normalize resources
+	let selectedHalls: string[] = [];
+	if (Array.isArray(selectedHallsInput) && selectedHallsInput.length > 0) {
+		selectedHalls = selectedHallsInput.filter(Boolean).map(String);
+	} else if (selectedHall) {
+		selectedHalls = [String(selectedHall)];
+	}
+
 	// Basic validation (shared)
-	if (!customerName || !customerEmail || !customerPhone || !eventType || !selectedHall || !bookingDate || !startTime || !endTime || !hallOwnerId) {
+	if (!customerName || !customerEmail || !customerPhone || !eventType || selectedHalls.length === 0 || !bookingDate || !startTime || !endTime || !hallOwnerId) {
 		return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
 	}
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -70,15 +79,19 @@ export async function POST(request: NextRequest) {
 				return NextResponse.json({ message: 'Hall owner not found' }, { status: 404 });
 			}
 
-			const hallDoc = await adminDb.collection('resources').doc(selectedHall).get();
-			if (!hallDoc.exists) return NextResponse.json({ message: 'Selected hall not found' }, { status: 404 });
-			const hallData = hallDoc.data() as any;
-			if (hallData.hallOwnerId !== hallOwnerId) return NextResponse.json({ message: 'Selected hall does not belong to the specified hall owner' }, { status: 400 });
+			// Verify all selected resources
+			const hallNames: string[] = [];
+			for (const resId of selectedHalls) {
+				const hDoc = await adminDb.collection('resources').doc(resId).get();
+				if (!hDoc.exists) return NextResponse.json({ message: `Selected resource not found: ${resId}` }, { status: 404 });
+				const hData = hDoc.data() as any;
+				if (hData.hallOwnerId !== hallOwnerId) return NextResponse.json({ message: `Selected resource does not belong to the specified hall owner: ${resId}` }, { status: 400 });
+				hallNames.push(hData.name || resId);
+			}
 
 			const conflictingBookingsSnapshot = await adminDb
 				.collection('bookings')
 				.where('hallOwnerId', '==', hallOwnerId)
-				.where('selectedHall', '==', selectedHall)
 				.where('bookingDate', '==', bookingDate)
 				.get();
 			for (const bookingDoc of conflictingBookingsSnapshot.docs) {
@@ -86,7 +99,11 @@ export async function POST(request: NextRequest) {
 				if (!['pending', 'confirmed'].includes(booking.status)) continue;
 				const existingStart = new Date(`2000-01-01T${booking.startTime}:00`);
 				const existingEnd = new Date(`2000-01-01T${booking.endTime}:00`);
-				if (startTimeObj < existingEnd && endTimeObj > existingStart) {
+				const bookingResources = Array.isArray(booking.selectedHalls) && booking.selectedHalls.length > 0
+					? (booking.selectedHalls as string[]).map(String)
+					: [booking.selectedHall].filter(Boolean).map(String);
+				const intersects = bookingResources.some(r => selectedHalls.includes(r));
+				if (intersects && startTimeObj < existingEnd && endTimeObj > existingStart) {
 					return NextResponse.json({
 						message: 'Time slot is already booked. Please choose a different time.',
 						conflictingBooking: {
@@ -100,7 +117,7 @@ export async function POST(request: NextRequest) {
 							requestedTime: `${startTime} - ${endTime}`,
 							bookedTime: `${booking.startTime} - ${booking.endTime}`,
 							date: bookingDate,
-							resource: hallData.name,
+							resource: 'one or more selected resources',
 						},
 					}, { status: 409 });
 				}
@@ -109,25 +126,38 @@ export async function POST(request: NextRequest) {
 			let calculatedPrice = 0;
 			let priceDetails: any = null;
 			try {
-				const pricingSnapshot = await adminDb
-					.collection('pricing')
-					.where('hallOwnerId', '==', hallOwnerId)
-					.where('resourceId', '==', selectedHall)
-					.get();
-				if (!pricingSnapshot.empty) {
-					const pricingData: any = pricingSnapshot.docs[0].data();
-					const durationHours = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60 * 60);
-					const isWeekend = bookingDateObj.getDay() === 0 || bookingDateObj.getDay() === 6;
-					const rate = isWeekend ? pricingData.weekendRate : pricingData.weekdayRate;
-					calculatedPrice = pricingData.rateType === 'hourly' ? rate * durationHours : (durationHours >= 8 ? rate : rate * 0.5);
+				const durationHours = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60 * 60);
+				const isWeekend = bookingDateObj.getDay() === 0 || bookingDateObj.getDay() === 6;
+				const breakdown: any[] = [];
+				for (const resId of selectedHalls) {
+					const pricingSnapshot = await adminDb
+						.collection('pricing')
+						.where('hallOwnerId', '==', hallOwnerId)
+						.where('resourceId', '==', resId)
+						.get();
+					if (!pricingSnapshot.empty) {
+						const pricingData: any = pricingSnapshot.docs[0].data();
+						const rate = isWeekend ? pricingData.weekendRate : pricingData.weekdayRate;
+						const resPrice = pricingData.rateType === 'hourly' ? rate * durationHours : (durationHours >= 8 ? rate : rate * 0.5);
+						calculatedPrice += Number(resPrice || 0);
+						breakdown.push({
+							resourceId: resId,
+							weekdayRate: pricingData.weekdayRate,
+							weekendRate: pricingData.weekendRate,
+							rateType: pricingData.rateType,
+							appliedRate: rate,
+							durationHours,
+							isWeekend,
+							calculatedPrice: resPrice
+						});
+					}
+				}
+				if (breakdown.length > 0) {
 					priceDetails = {
-						rateType: pricingData.rateType,
-						weekdayRate: pricingData.weekdayRate,
-						weekendRate: pricingData.weekendRate,
-						appliedRate: rate,
-						durationHours,
-						isWeekend,
-						calculationMethod: pricingData.rateType === 'hourly' ? 'hourly' : 'daily',
+						multiResource: true,
+						breakdown,
+						total: calculatedPrice,
+						calculationMethod: 'sum_per_resource',
 						frontendEstimatedPrice: estimatedPrice || null,
 					};
 				} else {
@@ -161,8 +191,10 @@ export async function POST(request: NextRequest) {
 				customerPhone: cleanedPhone,
 				customerAvatar: customerAvatar || null,
 				eventType,
-				selectedHall,
-				hallName: hallData.name,
+				selectedHall: selectedHalls[0],
+				hallName: hallNames[0],
+				selectedHalls,
+				hallNames,
 				bookingDate,
 				startTime,
 				endTime,
@@ -206,7 +238,7 @@ export async function POST(request: NextRequest) {
 					customerName,
 					customerEmail,
 					eventType,
-					hallName: hallData.name,
+					hallName: hallNames[0],
 					bookingDate,
 					startTime,
 					endTime,
@@ -222,7 +254,7 @@ export async function POST(request: NextRequest) {
 						customerEmail,
 						customerPhone: cleanedPhone,
 						eventType,
-						hallName: hallData.name,
+						hallName: hallNames[0],
 						bookingDate,
 						startTime,
 						endTime,
@@ -255,16 +287,21 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ message: 'Hall owner not found' }, { status: 404 });
 		}
 
-		const hallDocRef = doc(db, 'resources', selectedHall);
-		const hallDoc = await getDoc(hallDocRef);
-		if (!hallDoc.exists()) return NextResponse.json({ message: 'Selected hall not found' }, { status: 404 });
-		const hallData = hallDoc.data() as any;
-		if (hallData.hallOwnerId !== hallOwnerId) return NextResponse.json({ message: 'Selected hall does not belong to the specified hall owner' }, { status: 400 });
+		// Verify all selected resources
+		const hallNames: string[] = [];
+		for (const resId of selectedHalls) {
+			const hRef = doc(db, 'resources', resId);
+			const hDoc = await getDoc(hRef);
+			if (!hDoc.exists()) return NextResponse.json({ message: `Selected resource not found: ${resId}` }, { status: 404 });
+			const hData = hDoc.data() as any;
+			if (hData.hallOwnerId !== hallOwnerId) return NextResponse.json({ message: `Selected resource does not belong to the specified hall owner: ${resId}` }, { status: 400 });
+			hallNames.push(hData.name || resId);
+		}
 
+		// Conflict check across any selected resource
 		const conflictingBookingsQuery = query(
 			collection(db, 'bookings'),
 			where('hallOwnerId', '==', hallOwnerId),
-			where('selectedHall', '==', selectedHall),
 			where('bookingDate', '==', bookingDate)
 		);
 		const conflictingBookingsSnapshot = await getDocs(conflictingBookingsQuery);
@@ -273,7 +310,11 @@ export async function POST(request: NextRequest) {
 			if (!['pending', 'confirmed'].includes(booking.status)) continue;
 			const existingStart = new Date(`2000-01-01T${booking.startTime}:00`);
 			const existingEnd = new Date(`2000-01-01T${booking.endTime}:00`);
-			if (startTimeObj < existingEnd && endTimeObj > existingStart) {
+			const bookingResources = Array.isArray(booking.selectedHalls) && booking.selectedHalls.length > 0
+				? (booking.selectedHalls as string[]).map(String)
+				: [booking.selectedHall].filter(Boolean).map(String);
+			const intersects = bookingResources.some(r => selectedHalls.includes(r));
+			if (intersects && startTimeObj < existingEnd && endTimeObj > existingStart) {
 				return NextResponse.json({
 					message: 'Time slot is already booked. Please choose a different time.',
 					conflictingBooking: {
@@ -287,7 +328,7 @@ export async function POST(request: NextRequest) {
 						requestedTime: `${startTime} - ${endTime}`,
 						bookedTime: `${booking.startTime} - ${booking.endTime}`,
 						date: bookingDate,
-						resource: hallData.name,
+						resource: 'one or more selected resources',
 					},
 				}, { status: 409 });
 			}
@@ -295,19 +336,23 @@ export async function POST(request: NextRequest) {
 
 		let calculatedPrice = 0;
 		try {
-			const pricingQuery = query(
-				collection(db, 'pricing'),
-				where('hallOwnerId', '==', hallOwnerId),
-				where('resourceId', '==', selectedHall)
-			);
-			const pricingSnapshot = await getDocs(pricingQuery);
-			if (!pricingSnapshot.empty) {
-				const pricingData: any = pricingSnapshot.docs[0].data();
-				const durationHours = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60 * 60);
-				const isWeekend = bookingDateObj.getDay() === 0 || bookingDateObj.getDay() === 6;
-				const rate = isWeekend ? pricingData.weekendRate : pricingData.weekdayRate;
-				calculatedPrice = pricingData.rateType === 'hourly' ? rate * durationHours : (durationHours >= 8 ? rate : rate * 0.5);
-			} else {
+			const durationHours = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60 * 60);
+			const isWeekend = bookingDateObj.getDay() === 0 || bookingDateObj.getDay() === 6;
+			for (const resId of selectedHalls) {
+				const pricingQuery = query(
+					collection(db, 'pricing'),
+					where('hallOwnerId', '==', hallOwnerId),
+					where('resourceId', '==', resId)
+				);
+				const pricingSnapshot = await getDocs(pricingQuery);
+				if (!pricingSnapshot.empty) {
+					const pricingData: any = pricingSnapshot.docs[0].data();
+					const rate = isWeekend ? pricingData.weekendRate : pricingData.weekdayRate;
+					const resPrice = pricingData.rateType === 'hourly' ? rate * durationHours : (durationHours >= 8 ? rate : rate * 0.5);
+					calculatedPrice += Number(resPrice || 0);
+				}
+			}
+			if (calculatedPrice === 0) {
 				calculatedPrice = estimatedPrice || 0;
 			}
 		} catch {
@@ -329,8 +374,10 @@ export async function POST(request: NextRequest) {
 			customerPhone: cleanedPhone,
 			customerAvatar: customerAvatar || null,
 			eventType,
-			selectedHall,
-			hallName: hallData.name,
+			selectedHall: selectedHalls[0],
+			hallName: hallNames[0],
+			selectedHalls,
+			hallNames,
 			bookingDate,
 			startTime,
 			endTime,
@@ -359,7 +406,7 @@ export async function POST(request: NextRequest) {
 					bookingCode,
 					customerName,
 					bookingDate,
-					hallName: hallData.name,
+					hallName: hallNames[0],
 				},
 				isRead: false,
 				createdAt: serverTimestamp(),
@@ -373,7 +420,7 @@ export async function POST(request: NextRequest) {
 				customerName,
 				customerEmail,
 				eventType,
-				hallName: hallData.name,
+				hallName: hallNames[0],
 				bookingDate,
 				startTime,
 				endTime,
@@ -389,7 +436,7 @@ export async function POST(request: NextRequest) {
 					customerEmail,
 					customerPhone: cleanedPhone,
 					eventType,
-					hallName: hallData.name,
+					hallName: hallNames[0],
 					bookingDate,
 					startTime,
 					endTime,

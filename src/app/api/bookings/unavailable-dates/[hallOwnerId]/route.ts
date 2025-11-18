@@ -30,7 +30,12 @@ export async function GET(
 			const filteredBookings = bookingsSnapshot.docs.filter((d: any) => {
 				const b: any = d.data();
 				if (!['pending', 'confirmed'].includes(b.status)) return false;
-				if (resourceId && b.selectedHall !== resourceId) return false;
+				if (resourceId) {
+					const bResources = Array.isArray(b.selectedHalls) && b.selectedHalls.length > 0
+						? (b.selectedHalls as string[]).map(String)
+						: [b.selectedHall].filter(Boolean).map(String);
+					if (!bResources.includes(String(resourceId))) return false;
+				}
 				if (startDate && b.bookingDate < startDate) return false;
 				if (endDate && b.bookingDate > endDate) return false;
 				return true;
@@ -40,18 +45,22 @@ export async function GET(
 			filteredBookings.forEach((d) => {
 				const b: any = d.data();
 				const bookingDate = b.bookingDate;
-				const selectedHall = b.selectedHall;
-				if (!bookingDate || !selectedHall) return;
+				const resources = (Array.isArray(b.selectedHalls) && b.selectedHalls.length > 0
+					? (b.selectedHalls as string[]).map(String)
+					: [b.selectedHall].filter(Boolean).map(String));
+				if (!bookingDate || resources.length === 0) return;
 				if (!unavailableDates[bookingDate]) unavailableDates[bookingDate] = {};
-				if (!unavailableDates[bookingDate][selectedHall]) unavailableDates[bookingDate][selectedHall] = [];
-				unavailableDates[bookingDate][selectedHall].push({
-					bookingId: d.id as string,
-					startTime: b.startTime || 'N/A',
-					endTime: b.endTime || 'N/A',
-					customerName: b.customerName || 'Unknown',
-					eventType: b.eventType || 'Unknown',
-					status: b.status || 'Unknown',
-				});
+				for (const resId of resources) {
+					if (!unavailableDates[bookingDate][resId]) unavailableDates[bookingDate][resId] = [];
+					unavailableDates[bookingDate][resId].push({
+						bookingId: d.id as string,
+						startTime: b.startTime || 'N/A',
+						endTime: b.endTime || 'N/A',
+						customerName: b.customerName || 'Unknown',
+						eventType: b.eventType || 'Unknown',
+						status: b.status || 'Unknown',
+					});
+				}
 			});
 
 			return NextResponse.json({
@@ -74,7 +83,12 @@ export async function GET(
 			const filteredBookings = bookingsSnapshot.docs.filter((d) => {
 				const b: any = d.data();
 				if (!['pending', 'confirmed'].includes(b.status)) return false;
-				if (resourceId && b.selectedHall !== resourceId) return false;
+				if (resourceId) {
+					const bResources = Array.isArray(b.selectedHalls) && b.selectedHalls.length > 0
+						? (b.selectedHalls as string[]).map(String)
+						: [b.selectedHall].filter(Boolean).map(String);
+					if (!bResources.includes(String(resourceId))) return false;
+				}
 				if (startDate && b.bookingDate < startDate) return false;
 				if (endDate && b.bookingDate > endDate) return false;
 				return true;
@@ -83,18 +97,22 @@ export async function GET(
 			filteredBookings.forEach((docSnap) => {
 				const b: any = docSnap.data();
 				const bookingDate = b.bookingDate;
-				const selectedHall = b.selectedHall;
-				if (!bookingDate || !selectedHall) return;
+				const resources = (Array.isArray(b.selectedHalls) && b.selectedHalls.length > 0
+					? (b.selectedHalls as string[]).map(String)
+					: [b.selectedHall].filter(Boolean).map(String));
+				if (!bookingDate || resources.length === 0) return;
 				if (!unavailableDates[bookingDate]) unavailableDates[bookingDate] = {};
-				if (!unavailableDates[bookingDate][selectedHall]) unavailableDates[bookingDate][selectedHall] = [];
-				unavailableDates[bookingDate][selectedHall].push({
-					bookingId: docSnap.id,
-					startTime: b.startTime || 'N/A',
-					endTime: b.endTime || 'N/A',
-					customerName: b.customerName || 'Unknown',
-					eventType: b.eventType || 'Unknown',
-					status: b.status || 'Unknown',
-				});
+				for (const resId of resources) {
+					if (!unavailableDates[bookingDate][resId]) unavailableDates[bookingDate][resId] = [];
+					unavailableDates[bookingDate][resId].push({
+						bookingId: docSnap.id,
+						startTime: b.startTime || 'N/A',
+						endTime: b.endTime || 'N/A',
+						customerName: b.customerName || 'Unknown',
+						eventType: b.eventType || 'Unknown',
+						status: b.status || 'Unknown',
+					});
+				}
 			});
 			return NextResponse.json({
 				unavailableDates,

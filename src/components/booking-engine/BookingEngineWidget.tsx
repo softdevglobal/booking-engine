@@ -237,7 +237,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 		setSubmitting(true);
 		try {
 			const selectedHall = formData.resources[0];
-			const estimatedPrice = calculateEstimatedCost(selectedHall, formData.startTime, formData.endTime, formData.date);
+			const estimatedPrice = totalEstimated || calculateEstimatedCost(selectedHall, formData.startTime, formData.endTime, formData.date);
 			const payload = {
 				customerId: isAuthenticated ? user?.id : undefined,
 				customerName: formData.name,
@@ -245,6 +245,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 				customerPhone: formData.phone,
 				eventType: formData.eventType,
 				selectedHall,
+				selectedHalls: formData.resources,
 				bookingDate: formData.date,
 				startTime: formData.startTime,
 				endTime: formData.endTime,
@@ -352,7 +353,7 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 							)}
 						</div>
 						<div ref={resourceRef} className="relative">
-							<label className="block text-sm font-medium text-[#181411] mb-2">Select Resource *</label>
+							<label className="block text-sm font-medium text-[#181411] mb-2">Select Resource(s) *</label>
 							{loading ? (
 								<div className="text-center py-4">
 									<p className="text-[#897561]">Loading resources...</p>
@@ -370,11 +371,29 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 										aria-haspopup="listbox"
 										aria-expanded={resourceOpen}
 									>
-										<span className={`truncate ${formData.resources[0] ? "text-[#181411]" : "text-[#897561]"}`}>
-											{(() => {
-												const sel = resources.find(r => r.id === formData.resources[0]);
-												return sel ? `${sel.name} ${sel.capacity ? `- ${sel.capacity} ppl` : ""}` : "Select a resource";
-											})()}
+										<span className={`truncate ${formData.resources.length > 0 ? "text-[#181411]" : "text-[#897561]"}`}>
+											{formData.resources.length === 0 ? (
+												"Select one or more resources"
+											) : (
+												<div className="flex flex-wrap gap-2">
+													{formData.resources.map((rid) => {
+														const r = resources.find(x => x.id === rid);
+														return (
+															<span key={rid} className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-800 border border-blue-200 rounded-full px-2 py-1">
+																<span className="font-medium">{r?.name || rid}</span>
+																<button
+																	type="button"
+																	className="ml-1 text-blue-700 hover:text-blue-900"
+																	onClick={(e) => { e.stopPropagation(); handleResourceChange(rid, false); }}
+																	aria-label="Remove"
+																>
+																	×
+																</button>
+															</span>
+														);
+													})}
+												</div>
+											)}
 										</span>
 										<svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -400,25 +419,21 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 														<button
 															type="button"
 															className="w-full text-left px-4 py-3"
-															onClick={() => { setFormData(prev => ({ ...prev, resources: [r.id] })); setResourceOpen(false); }}
+															onClick={() => handleResourceChange(r.id, !formData.resources.includes(r.id))}
 															role="option"
-															aria-selected={formData.resources[0] === r.id}
+															aria-selected={formData.resources.includes(r.id)}
 														>
 															<div className="flex items-center gap-3">
-																<div className="w-12 h-12 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
-																	{r.imageUrl ? (
-																		<img src={r.imageUrl} alt="" className="w-full h-full object-cover" />
-																	) : (
-																		<div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No Img</div>
-																	)}
+																<div className="w-5 h-5 border rounded-sm flex items-center justify-center">
+																	{formData.resources.includes(r.id) && <span className="w-3 h-3 bg-blue-600 inline-block rounded-sm" />}
 																</div>
-																<div className="min-w-0">
+																<div className="min-w-0 flex-1">
 																	<div className="flex items-center gap-2">
 																		<span className="text-sm font-medium text-[#181411] truncate">{r.name}</span>
 																		<span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 capitalize">{r.type}</span>
 																	</div>
 																	<div className="text-xs text-[#897561] flex gap-3 mt-0.5">
-																		<span>{r.capacity} ppl</span>
+																		{typeof r.capacity === "number" && <span>{r.capacity} ppl</span>}
 																		{r.code && <span className="font-mono">#{r.code}</span>}
 																	</div>
 																</div>
@@ -427,6 +442,15 @@ export default function BookingEngineWidget(props: BookingEngineWidgetProps) {
 													</li>
 												))}
 											</ul>
+											<div className="p-2 border-t border-gray-200 bg-gray-50 text-right">
+												<button
+													type="button"
+													onClick={() => setResourceOpen(false)}
+													className="inline-flex items-center px-3 py-1.5 rounded-md text-sm bg-gray-100 hover:bg-gray-200 text-[#181411]"
+												>
+													Done
+												</button>
+											</div>
 										</div>
 									)}
 
