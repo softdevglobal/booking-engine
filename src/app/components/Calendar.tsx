@@ -128,6 +128,9 @@ export default function Calendar({ resourceId, resourceName, hallOwnerId, onDate
   };
 
   const handlePrev = () => {
+    // Disallow navigating to months entirely in the past
+    const canGoPrev = year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth());
+    if (!canGoPrev) return;
     if (month === 0) { setMonth(11); setYear(year - 1); } else { setMonth(month - 1); }
   };
   const handleNext = () => {
@@ -218,7 +221,11 @@ export default function Calendar({ resourceId, resourceName, hallOwnerId, onDate
         </div>
       )}
       <div className="flex items-center justify-between p-2">
-        <button className="text-[#181411] hover:text-[#ec8013] transition-colors rounded-full p-2" onClick={handlePrev}>
+        <button
+          className="text-[#181411] hover:text-[#ec8013] transition-colors rounded-full p-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={handlePrev}
+          disabled={!(year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth()))}
+        >
           <svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
             <path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"></path>
           </svg>
