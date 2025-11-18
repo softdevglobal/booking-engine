@@ -78,6 +78,11 @@ export type CreateBookingResponse = {
 	status: string;
 };
 
+// Optional absolute API base for production/server environments.
+// If provided, all requests will target this origin instead of relative /api.
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/+$/, '');
+const withBase = (path: string) => (API_BASE ? `${API_BASE}${path}` : path);
+
 async function handleJson<T>(res: Response): Promise<T> {
 	const data = await res.json().catch(() => ({}));
 	if (!res.ok) {
@@ -88,12 +93,12 @@ async function handleJson<T>(res: Response): Promise<T> {
 }
 
 export async function getPublicResources(tenantId: string): Promise<ResourcesResponse> {
-	const res = await fetch(`/api/resources/public/${tenantId}`, { method: 'GET' });
+	const res = await fetch(withBase(`/api/resources/public/${tenantId}`), { method: 'GET' });
 	return handleJson<ResourcesResponse>(res);
 }
 
 export async function getPublicPricing(tenantId: string): Promise<PricingItem[]> {
-	const res = await fetch(`/api/pricing/public/${tenantId}`, { method: 'GET' });
+	const res = await fetch(withBase(`/api/pricing/public/${tenantId}`), { method: 'GET' });
 	return handleJson<PricingItem[]>(res);
 }
 
@@ -109,13 +114,20 @@ export async function getPublicEventTypes(tenantId: string): Promise<string[]> {
 		}
 	};
 
+	// 1) Absolute base if configured
+	if (API_BASE) {
+		const abs = await tryFetch(withBase(`/api/users/public/${tenantId}/event-types`));
+		if (abs) return abs;
+	}
+
+	// 2) Same-origin relative
 	const first = await tryFetch(`/api/users/public/${tenantId}/event-types`);
 	if (first) return first;
 
-	// Dev fallback when API is running on 5000 and no proxy is configured
+	// 3) Dev fallback when API is running on 5000 and no proxy is configured
 	const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 	if (isLocal) {
-		const second = await tryFetch(`http://localhost:5000/api/users/public/${tenantId}/event-types`);
+		const second = await tryFetch(`/api/users/public/${tenantId}/event-types`);
 		if (second) return second;
 	}
 
@@ -128,12 +140,12 @@ export async function getUnavailableDates(tenantId: string, params?: { resourceI
 	if (params?.startDate) usp.set('startDate', String(params.startDate));
 	if (params?.endDate) usp.set('endDate', String(params.endDate));
 	const q = usp.toString();
-	const res = await fetch(`/api/bookings/unavailable-dates/${tenantId}${q ? `?${q}` : ''}`, { method: 'GET' });
+	const res = await fetch(withBase(`/api/bookings/unavailable-dates/${tenantId}${q ? `?${q}` : ''}`), { method: 'GET' });
 	return handleJson<UnavailableDatesResponse>(res);
 }
 
 export async function createBooking(payload: CreateBookingRequest): Promise<CreateBookingResponse> {
-	const res = await fetch('/api/bookings', {
+	const res = await fetch(withBase('/api/bookings'), {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload),
