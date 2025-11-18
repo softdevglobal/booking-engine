@@ -59,6 +59,7 @@ export async function GET(
 				phone: userData.phone || userData.contactNumber || 'Phone not provided',
 				email: userData.email || 'Email not provided',
 				businessName: userData.businessName || userData.name || 'Business Name',
+				eventTypes: Array.isArray(userData.eventTypes) ? userData.eventTypes : []
 			};
 
 			return NextResponse.json({ resources, hallOwner });
@@ -96,6 +97,7 @@ export async function GET(
 				phone: userData.phone || userData.contactNumber || 'Phone not provided',
 				email: userData.email || 'Email not provided',
 				businessName: userData.businessName || userData.name || 'Business Name',
+				eventTypes: Array.isArray(userData.eventTypes) ? userData.eventTypes : []
 			};
 			return NextResponse.json({ resources, hallOwner });
 		}
