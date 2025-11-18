@@ -12,6 +12,7 @@ export default function LoginModal({ onClose, onSuccess }: Props) {
 	const [isLogin, setIsLogin] = useState(true);
 	const [error, setError] = useState("");
 	const [formData, setFormData] = useState({ name: "", email: "", password: "", phone: "" });
+	const [showPassword, setShowPassword] = useState(false);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
@@ -22,7 +23,7 @@ export default function LoginModal({ onClose, onSuccess }: Props) {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setError("");
-		if (!formData.email || !formData.password || (!isLogin && !formData.name)) {
+		if (!formData.email || !formData.password || (!isLogin && (!formData.name || !formData.phone))) {
 			setError("Please fill in all required fields");
 			return;
 		}
@@ -58,12 +59,45 @@ export default function LoginModal({ onClose, onSuccess }: Props) {
 					</div>
 					<div>
 						<label htmlFor="password" className="block text-sm font-medium text-[#181411] mb-2">Password *</label>
-						<input id="password" name="password" type="password" value={formData.password} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ec8013] focus:border-transparent text-[#181411]" placeholder="Enter your password" required />
+						<div className="relative">
+							<input
+								id="password"
+								name="password"
+								type={showPassword ? "text" : "password"}
+								value={formData.password}
+								onChange={handleInputChange}
+								className="w-full px-4 py-3 pr-11 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ec8013] focus:border-transparent text-[#181411]"
+								placeholder="Enter your password"
+								required
+								autoComplete={isLogin ? "current-password" : "new-password"}
+							/>
+							<button
+								type="button"
+								onClick={() => setShowPassword(v => !v)}
+								className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700"
+								aria-label={showPassword ? "Hide password" : "Show password"}
+								title={showPassword ? "Hide password" : "Show password"}
+							>
+								{showPassword ? (
+									<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+										<path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
+										<path d="M10.58 10.58a2 2 0 102.83 2.83" />
+										<path d="M16.88 16.88A10.94 10.94 0 0112 19c-5 0-9.27-3-11-7 1.02-2.33 2.73-4.3 4.88-5.62" />
+										<path d="M9.88 4.12A10.94 10.94 0 0112 5c5 0 9.27 3 11 7a11.6 11.6 0 01-2.32 3.18" />
+									</svg>
+								) : (
+									<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+										<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" strokeLinecap="round" strokeLinejoin="round" />
+										<circle cx="12" cy="12" r="3" />
+									</svg>
+								)}
+							</button>
+						</div>
 					</div>
 					{!isLogin && (
 						<div>
-							<label htmlFor="phone" className="block text-sm font-medium text-[#181411] mb-2">Phone Number (Optional)</label>
-							<input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#e63946] focus:border-transparent text-[#181411]" placeholder="Enter your phone number" />
+							<label htmlFor="phone" className="block text-sm font-medium text-[#181411] mb-2">Phone Number *</label>
+							<input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#e63946] focus:border-transparent text-[#181411]" placeholder="Enter your phone number" required />
 						</div>
 					)}
 					<button type="submit" disabled={isLoading} className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-colors ${isLoading ? "bg-gray-400 cursor-not-allowed" : "bg-[#e63946] hover:bg-[#d62839]"}`}>
